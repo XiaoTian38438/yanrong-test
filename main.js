@@ -372,7 +372,24 @@ document.addEventListener('click', function(e) {
 // AI助手功能
 // ============================================
 const AIAssistant = {
-    API_KEY: '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',
+    // OpenRouter API Keys（多个备用）
+    API_KEYS: [
+        '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',
+        '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',
+        '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'
+    ],
+    
+    // 当前使用的 API Key 索引
+    currentKeyIndex: 0,
+    
+    // 使用的模型
+    MODEL: 'arcee-ai/trinity-large-preview:free',
+    
+    // API 基础 URL
+    API_URL: 'https://openrouter.ai/api/v1/chat/completions',
+    
+    // 对话历史（用于上下文）
+    conversationHistory: [],
     
     updateVisibility() {
         const btn = document.getElementById('aiFloatBtn');
@@ -419,44 +436,105 @@ const AIAssistant = {
         }
     },
     
+    // 获取当前 API Key
+    getCurrentKey() {
+        return this.API_KEYS[this.currentKeyIndex];
+    },
+    
+    // 切换到下一个 API Key
+    rotateKey() {
+        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.API_KEYS.length;
+        console.log(`切换到备用 API Key #${this.currentKeyIndex + 1}`);
+        return this.getCurrentKey();
+    },
+    
+    // 重置对话历史
+    clearHistory() {
+        this.conversationHistory = [];
+    },
+    
     async callAPI(userMessage) {
-        try {
-            const response = await fetch('https://api.nvcf.nvidia.com/v2/nvcf/pex/functions/text-generation/2', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.API_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    messages: [
-                        { role: "system", content: "你是烟融小镇的AI助手，专门帮助用户解答问题和提供建议。请用中文回答问题，保持友好和专业的态度。" },
-                        { role: "user", content: userMessage }
-                    ],
-                    max_tokens: 512,
-                    temperature: 0.7,
-                    top_p: 0.95
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`API错误: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-                return data.choices[0].message.content;
-            } else if (data.generated_text) {
-                return data.generated_text;
-            } else {
-                throw new Error('无法解析API响应');
-            }
-        } catch (error) {
-            console.error('AI API错误:', error);
-            // 返回预设的回复
-            return '抱歉，我现在无法回答你的问题。你可以尝试换个问题，或者稍后再问我。';
+        // 添加用户消息到历史
+        this.conversationHistory.push({
+            role: 'user',
+            content: userMessage
+        });
+        
+        // 限制历史长度，保留最近 10 条消息
+        if (this.conversationHistory.length > 10) {
+            this.conversationHistory = this.conversationHistory.slice(-10);
         }
+        
+        // 尝试所有 API Key
+        let lastError = null;
+        
+        for (let attempt = 0; attempt < this.API_KEYS.length; attempt++) {
+            const currentKey = this.getCurrentKey();
+            
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': '烟融小镇'
+                    },
+                    body: JSON.stringify({
+                        model: this.MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: '你是烟融小镇的AI助手，专门帮助用户解答问题和提供建议。请用中文回答问题，保持友好和专业的态度。回答要简洁明了。'
+                            },
+                            ...this.conversationHistory
+                        ],
+                        max_tokens: 1024,
+                        temperature: 0.7,
+                        top_p: 0.95
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error(`API Key #${this.currentKeyIndex + 1} 失败:`, response.status, errorData);
+                    
+                    // 如果是认证错误或限流，切换到下一个 Key
+                    if (response.status === 401 || response.status === 429 || response.status === 402) {
+                        this.rotateKey();
+                        continue;
+                    }
+                    
+                    throw new Error(errorData.error?.message || `API错误: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    // 添加助手回复到历史
+                    this.conversationHistory.push({
+                        role: 'assistant',
+                        content: data.choices[0].message.content
+                    });
+                    
+                    return data.choices[0].message.content;
+                } else {
+                    throw new Error('无法解析API响应');
+                }
+            } catch (error) {
+                lastError = error;
+                console.error(`API Key #${this.currentKeyIndex + 1} 请求失败:`, error.message);
+                
+                // 切换到下一个 Key 继续尝试
+                if (attempt < this.API_KEYS.length - 1) {
+                    this.rotateKey();
+                }
+            }
+        }
+        
+        // 所有 Key 都失败了
+        this.conversationHistory.pop(); // 移除失败的用户消息
+        throw lastError || new Error('所有API连接失败，请稍后重试');
     },
     
     addMessage(content, isUser, isError = false) {
