@@ -372,15 +372,8 @@ document.addEventListener('click', function(e) {
 // AI助手功能
 // ============================================
 const AIAssistant = {
-    // OpenRouter API Keys（多个备用）
-    API_KEYS: [
-        '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',
-        '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',
-        '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'
-    ],
-    
-    // 当前使用的 API Key 索引
-    currentKeyIndex: 0,
+    // OpenRouter API Key
+    API_KEY: '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',
     
     // 使用的模型
     MODEL: 'arcee-ai/trinity-large-preview:free',
@@ -390,6 +383,9 @@ const AIAssistant = {
     
     // 对话历史（用于上下文）
     conversationHistory: [],
+    
+    // 打字机效果状态
+    isTyping: false,
     
     updateVisibility() {
         const btn = document.getElementById('aiFloatBtn');
@@ -419,38 +415,115 @@ const AIAssistant = {
     async sendMessage() {
         const input = document.getElementById('aiInput');
         const message = input.value.trim();
-        if (!message) return;
+        if (!message || this.isTyping) return;
         
         this.addMessage(message, true);
         input.value = '';
         
-        const loadingId = this.showLoading();
+        // 显示思考中的消息
+        const thinkingMsgId = this.showThinking();
         
         try {
             const response = await this.callAPI(message);
-            this.removeLoading(loadingId);
-            this.addMessage(response, false);
+            this.removeThinking(thinkingMsgId);
+            // 使用打字机效果显示回复
+            await this.addMessageWithTypewriter(response);
         } catch (error) {
-            this.removeLoading(loadingId);
+            this.removeThinking(thinkingMsgId);
             this.addMessage(`请求失败：${error.message}`, false, true);
         }
     },
     
-    // 获取当前 API Key
-    getCurrentKey() {
-        return this.API_KEYS[this.currentKeyIndex];
+    // 显示思考中状态
+    showThinking() {
+        const container = document.getElementById('aiMessages');
+        if (!container) return null;
+        
+        const thinkingId = 'thinking_' + Date.now();
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'ai-message';
+        thinkingDiv.id = thinkingId;
+        thinkingDiv.innerHTML = `
+            <div class="ai-avatar" style="width:28px;height:28px;font-size:0.85rem;flex-shrink:0;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="msg-bubble thinking-bubble">
+                <span class="thinking-text">思考中</span>
+                <span class="thinking-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </span>
+            </div>
+        `;
+        
+        container.appendChild(thinkingDiv);
+        container.scrollTop = container.scrollHeight;
+        
+        return thinkingId;
     },
     
-    // 切换到下一个 API Key
-    rotateKey() {
-        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.API_KEYS.length;
-        console.log(`切换到备用 API Key #${this.currentKeyIndex + 1}`);
-        return this.getCurrentKey();
+    // 移除思考中状态
+    removeThinking(id) {
+        if (id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+    },
+    
+    // 打字机效果显示消息
+    async addMessageWithTypewriter(content) {
+        const container = document.getElementById('aiMessages');
+        if (!container) return;
+        
+        this.isTyping = true;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'ai-message';
+        msgDiv.innerHTML = `
+            <div class="ai-avatar" style="width:28px;height:28px;font-size:0.85rem;flex-shrink:0;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="msg-bubble typewriter-text"></div>
+        `;
+        
+        container.appendChild(msgDiv);
+        const bubble = msgDiv.querySelector('.msg-bubble');
+        
+        // 处理换行符
+        const lines = content.split('\n');
+        let displayText = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            for (let j = 0; j < line.length; j++) {
+                displayText += line[j];
+                bubble.innerHTML = this.formatResponse(displayText);
+                container.scrollTop = container.scrollHeight;
+                await this.sleep(20); // 打字速度 20ms
+            }
+            if (i < lines.length - 1) {
+                displayText += '\n';
+                bubble.innerHTML = this.formatResponse(displayText);
+            }
+        }
+        
+        // 添加助手回复到历史
+        this.conversationHistory.push({
+            role: 'assistant',
+            content: content
+        });
+        
+        this.isTyping = false;
+    },
+    
+    // 延时函数
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     },
     
     // 重置对话历史
     clearHistory() {
         this.conversationHistory = [];
+        showToast('对话已清空', 'info');
     },
     
     async callAPI(userMessage) {
@@ -465,76 +538,69 @@ const AIAssistant = {
             this.conversationHistory = this.conversationHistory.slice(-10);
         }
         
-        // 尝试所有 API Key
-        let lastError = null;
-        
-        for (let attempt = 0; attempt < this.API_KEYS.length; attempt++) {
-            const currentKey = this.getCurrentKey();
-            
-            try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${currentKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': '烟融小镇'
-                    },
-                    body: JSON.stringify({
-                        model: this.MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: '你是烟融小镇的AI助手，专门帮助用户解答问题和提供建议。请用中文回答问题，保持友好和专业的态度。回答要简洁明了。'
-                            },
-                            ...this.conversationHistory
-                        ],
-                        max_tokens: 1024,
-                        temperature: 0.7,
-                        top_p: 0.95
-                    })
-                });
+        try {
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.origin || 'https://yanrong.app',
+                    'X-Title': 'YanRong Town'
+                },
+                body: JSON.stringify({
+                    model: this.MODEL,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `你是烟融小镇的游戏小助理，这是一个《我的世界》Java版服务器工作室。
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error(`API Key #${this.currentKeyIndex + 1} 失败:`, response.status, errorData);
-                    
-                    // 如果是认证错误或限流，切换到下一个 Key
-                    if (response.status === 401 || response.status === 429 || response.status === 402) {
-                        this.rotateKey();
-                        continue;
-                    }
-                    
-                    throw new Error(errorData.error?.message || `API错误: ${response.status}`);
-                }
+【服务器信息】
+- 服务器名称：烟融小镇
+- 游戏版本：Java版 1.8.8
+- 服务器地址：yanyu.18mc.cc
 
-                const data = await response.json();
-                
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    // 添加助手回复到历史
-                    this.conversationHistory.push({
-                        role: 'assistant',
-                        content: data.choices[0].message.content
-                    });
-                    
-                    return data.choices[0].message.content;
-                } else {
-                    throw new Error('无法解析API响应');
-                }
-            } catch (error) {
-                lastError = error;
-                console.error(`API Key #${this.currentKeyIndex + 1} 请求失败:`, error.message);
-                
-                // 切换到下一个 Key 继续尝试
-                if (attempt < this.API_KEYS.length - 1) {
-                    this.rotateKey();
-                }
+【你的职责】
+1. 帮助玩家了解如何下载和安装《我的世界》Java版
+2. 指导玩家如何添加服务器并进入游戏
+3. 解答游戏玩法相关问题，如生存技巧、建筑建议等
+4. 介绍服务器特色功能和玩法
+5. 帮助解决常见的游戏问题（如无法连接、版本不匹配等）
+
+【回答风格】
+- 热情友好，像个贴心的游戏伙伴
+- 回答简洁明了，重点突出
+- 涉及操作步骤时，用数字列表清晰说明
+- 鼓励新玩家，让他们感受到社区的温暖
+
+请用中文回答问题，保持专业但亲切的态度。`
+                        },
+                        ...this.conversationHistory
+                    ],
+                    max_tokens: 1024,
+                    temperature: 0.7,
+                    top_p: 0.95
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || `API错误: ${response.status}`);
             }
+
+            const data = await response.json();
+            
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+                console.log(`✓ 成功使用模型: ${this.MODEL}`);
+                return data.choices[0].message.content;
+            } else {
+                throw new Error('无法解析API响应');
+            }
+        } catch (error) {
+            // 移除失败的用户消息
+            this.conversationHistory.pop();
+            console.error('AI API错误:', error);
+            throw error;
         }
-        
-        // 所有 Key 都失败了
-        this.conversationHistory.pop(); // 移除失败的用户消息
-        throw lastError || new Error('所有API连接失败，请稍后重试');
     },
     
     addMessage(content, isUser, isError = false) {
@@ -557,30 +623,6 @@ const AIAssistant = {
         
         container.appendChild(msgDiv);
         container.scrollTop = container.scrollHeight;
-    },
-    
-    showLoading() {
-        const container = document.getElementById('aiMessages');
-        if (!container) return null;
-        
-        const loadingId = 'loading_' + Date.now();
-        container.innerHTML += `
-            <div class="ai-message" id="${loadingId}">
-                <div class="ai-avatar" style="width:28px;height:28px;font-size:0.85rem;flex-shrink:0;">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="msg-bubble" style="background:none;border:none;padding:0.6rem 0.9rem;">
-                    <i class="fas fa-circle-notch fa-spin" style="color:#238636;"></i>
-                </div>
-            </div>
-        `;
-        container.scrollTop = container.scrollHeight;
-        return loadingId;
-    },
-    
-    removeLoading(id) {
-        const el = document.getElementById(id);
-        if (el) el.remove();
     },
     
     formatResponse(text) {
