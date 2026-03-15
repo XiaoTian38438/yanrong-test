@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC服务器 - 烟融小镇</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 地图容器样式 */
+        .map-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, rgba(22, 27, 34, 0.8), rgba(13, 17, 23, 0.9));
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(48, 54, 61, 0.8);
+        }
+
+        .map-title {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .map-title h2 {
+            font-size: 1.3rem;
+            color: #c9d1d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .map-title h2 i {
+            color: #238636;
+        }
+
+        /* 地图网格 */
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .map-node {
+            position: relative;
+            background: rgba(48, 54, 61, 0.4);
+            border: 2px solid rgba(48, 54, 61, 0.8);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .map-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #238636, #3fb950, #238636, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .map-node:hover {
+            transform: translateY(-4px);
+            border-color: rgba(35, 134, 54, 0.5);
+            box-shadow: 0 8px 24px rgba(35, 134, 54, 0.2);
+        }
+
+        .map-node:hover::before {
+            opacity: 1;
+        }
+
+        .map-node.diamond {
+            grid-column: span 2;
+            background: linear-gradient(135deg, rgba(35, 134, 54, 0.15), rgba(35, 134, 54, 0.05));
+            border-color: rgba(35, 134, 54, 0.3);
+        }
+
+        .map-node .node-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 0.8rem;
+            background: rgba(35, 134, 54, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-node.diamond .node-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #238636, #2ea043);
+        }
+
+        .map-node .node-icon i {
+            font-size: 1.5rem;
+            color: #3fb950;
+        }
+
+        .map-node.diamond .node-icon i {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .map-node .node-name {
+            font-size: 1rem;
+            color: #c9d1d9;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .map-node .node-status {
+            font-size: 0.8rem;
+            color: #8b949e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .map-node .node-status.online {
+            color: #3fb950;
+        }
+
+        .map-node .node-status.offline {
+            color: #f85149;
+        }
+
+        .map-node .node-status i {
+            font-size: 0.7rem;
+        }
+
+        .map-node .node-players {
+            font-size: 0.75rem;
+            color: #6e7681;
+            margin-top: 0.3rem;
+        }
+
+        /* 服务器详情弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .server-modal {
+            background: #161b22;
+            border: 1px solid rgba(48, 54, 61, 0.8);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .server-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, rgba(35, 134, 54, 0.15), rgba(35, 134, 54, 0.05));
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.8);
+            position: relative;
+        }
+
+        .modal-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #238636, #3fb950, #238636, transparent);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(48, 54, 61, 0.4);
+            border: none;
+            color: #8b949e;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(248, 81, 73, 0.2);
+            color: #f85149;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            color: #c9d1d9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .modal-title i {
+            color: #3fb950;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .server-detail-item {
+            background: rgba(48, 54, 61, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .server-detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(35, 134, 54, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .detail-icon i {
+            font-size: 1.2rem;
+            color: #3fb950;
+        }
+
+        .detail-content {
+            flex: 1;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 0.2rem;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            color: #c9d1d9;
+            font-weight: 500;
+        }
+
+        .detail-value.online {
+            color: #3fb950;
+        }
+
+        .detail-value.offline {
+            color: #f85149;
+        }
+
+        /* 添加服务器地址显示 */
+        .server-ip-section {
+            background: rgba(35, 134, 54, 0.1);
+            border: 1px solid rgba(35, 134, 54, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .server-ip-info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .server-ip-info i {
+            color: #3fb950;
+            font-size: 1.2rem;
+        }
+
+        .server-ip-text {
+            font-family: 'Courier New', monospace;
+            color: #3fb950;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .copy-ip-btn {
+            background: rgba(35, 134, 54, 0.2);
+            border: 1px solid rgba(35, 134, 54, 0.3);
+            color: #3fb950;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+
+        .copy-ip-btn:hover {
+            background: rgba(35, 134, 54, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* 模态框动画 */
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-overlay.active .server-modal {
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .map-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .map-node.diamond {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .map-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .map-node.diamond {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
+
+    <!-- 导航栏 -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <i class="fas fa-mountain"></i>
+                <span>烟融小镇</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="#" class="active">MC服务器</a></li>
+                <li><a href="server-status.html">服务器状态</a></li>
+            </ul>
+            
+            <div class="nav-user" id="navUser">
+                <!-- 由main.js动态填充 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <div class="server-container">
+            <!-- 页面标题 -->
+            <div class="page-header">
+                <div class="header-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <h1>我的世界服务器</h1>
+                <p>探索我们的 Minecraft 服务器，与其他玩家一起冒险</p>
+            </div>
+
+            <!-- 地图节点 -->
+            <div class="map-container">
+                <div class="map-title">
+                    <h2>
+                        <i class="fas fa-map-marked-alt"></i>
+                        服务器列表
+                    </h2>
+                </div>
+                
+                <div class="map-grid">
+                    <div class="map-node diamond" onclick="showServerDetail('diamond')">
+                        <div class="node-icon">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="node-name">钻石大陆</div>
+                        <div class="node-status online">
+                            <i class="fas fa-circle"></i>
+                            <span>在线</span>
+                        </div>
+                        <div class="node-players">
+                            <span id="diamondPlayers">加载中...</span>
+                        </div>
+                    </div>
+
+                    <div class="map-node" onclick="showServerDetail('creative')">
+                        <div class="node-icon">
+                            <i class="fas fa-pencil-ruler"></i>
+                        </div>
+                        <div class="node-name">创造服</div>
+                        <div class="node-status offline">
+                            <i class="fas fa-times-circle"></i>
+                            <span>即将开放</span>
+                        </div>
+                        <div class="node-players">敬请期待</div>
+                    </div>
+
+                    <div class="map-node" onclick="showServerDetail('minigame')">
+                        <div class="node-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div class="node-name">小游戏服</div>
+                        <div class="node-status offline">
+                            <i class="fas fa-times-circle"></i>
+                            <span>即将开放</span>
+                        </div>
+                        <div class="node-players">敬请期待</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 服务器特色 -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>安全保护</h3>
+                    <p>完善的经济系统和物品保护机制</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>社区互动</h3>
+                    <p>活跃的玩家社区，定期举办活动</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3>24/7 在线</h3>
+                    <p>高性能服务器，全天候稳定运行</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>自定义玩法</h3>
+                    <p>独特的RPG系统和丰富的自定义内容</p>
+                </div>
+            </div>
+
+            <!-- 加入我们 -->
+            <div class="join-section">
+                <div class="join-content">
+                    <h2><i class="fas fa-rocket"></i> 准备好加入了么?</h2>
+                    <p>快来和我们一起创造精彩的世界吧！</p>
+                    
+                    <div class="join-address">
+                        <i class="fas fa-server"></i>
+                        <span>yanyu.18mc.cc</span>
+                    </div>
+
+                    <a href="#" class="join-btn" onclick="copyJoinAddress()">
+                        <i class="fas fa-copy"></i>
+                        复制地址加入游戏
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 服务器详情弹窗 -->
+    <div class="modal-overlay" id="serverModal">
+        <div class="server-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-crown"></i>
+                    钻石大陆
+                </h3>
+                <button class="modal-close" onclick="closeServerModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="server-detail-item">
+                    <div class="detail-icon">
+                        <i class="fas fa-power-off"></i>
+                    </div>
+                    <div class="detail-content">
+                        <div class="detail-label">服务器状态</div>
+                        <div class="detail-value" id="serverOnline">
+                            <span class="online"><i class="fas fa-spinner fa-spin"></i> 加载中...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="server-detail-item">
+                    <div class="detail-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="detail-content">
+                        <div class="detail-label">游戏版本</div>
+                        <div class="detail-value" id="serverVersion">1.20.1</div>
+                    </div>
+                </div>
+
+                <div class="server-detail-item">
+                    <div class="detail-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="detail-content">
+                        <div class="detail-label">TPS</div>
+                        <div class="detail-value" id="serverTPS">20.0</div>
+                    </div>
+                </div>
+
+                <div class="server-detail-item">
+                    <div class="detail-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="detail-content">
+                        <div class="detail-label">在线人数</div>
+                        <div class="detail-value" id="serverPlayers">
+                            <span class="online"><i class="fas fa-spinner fa-spin"></i> 加载中...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="server-ip-section">
+                    <div class="server-ip-info">
+                        <i class="fas fa-network-wired"></i>
+                        <div>
+                            <div class="detail-label">服务器地址</div>
+                            <div class="server-ip-text" id="serverIP">yanyu.18mc.cc</div>
+                        </div>
+                    </div>
+                    <button class="copy-ip-btn" onclick="copyServerIP()">
+                        <i class="fas fa-copy"></i>
+                        复制
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-mountain"></i> 烟融小镇</h4>
+                <p>一个充满乐趣的 Minecraft 社区</p>
+            </div>
+            <div class="footer-section">
+                <h4>快速链接</h4>
+                <ul>
+                    <li><a href="index.html">返回首页</a></li>
+                    <li><a href="server-status.html">服务器状态</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 烟融小镇. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- AI助手浮窗按钮 -->
+    <button class="ai-float-btn" id="aiFloatBtn" onclick="AIAssistant.openAssistant()">
+        <i class="fas fa-robot"></i>
+    </button>
+    
+    <!-- AI助手面板 -->
+    <div class="ai-assistant" id="aiAssistant">
+        <div class="ai-header" onclick="AIAssistant.togglePanel()">
+            <div class="ai-info">
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="ai-name">烟融AI助手</div>
+                    <div class="ai-status">由英伟达提供支持</div>
+                </div>
+            </div>
+            <button class="ai-close-btn" onclick="event.stopPropagation(); AIAssistant.closePanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="ai-body">
+            <div class="ai-messages" id="aiMessages">
+                <div class="ai-message">
+                    <div class="ai-avatar" style="width:28px;height:28px;font-size:0.85rem;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="msg-bubble">
+                        你好！我是烟融AI助手，很高兴为你服务！<br><br>
+                        我可以帮助你解答各种问题，或者聊聊天。<br><br>
+                        请输入你的问题或想聊的话题吧！
+                    </div>
+                </div>
+            </div>
+            <div class="ai-input-area">
+                <div class="ai-input-wrapper">
+                    <input type="text" class="ai-input" id="aiInput" placeholder="输入消息..." onkeypress="AIAssistant.handleKeypress(event)">
+                    <button class="ai-send-btn" onclick="AIAssistant.sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="filedb.js"></script>
+    <script src="main.js"></script>
+    <script>
+        // ==========================================
+        // 服务器详情相关功能
+        // ==========================================
+        
+        // 服务器详情数据缓存
+        let serverDetailData = null;
+        
+        // 打开服务器详情
+        function showServerDetail(server) {
+            if (server === 'diamond') {
+                // 显示弹窗
+                document.getElementById('serverModal').classList.add('active');
+                
+                // 重置显示加载状态
+                document.getElementById('serverOnline').innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> 加载中...</span>';
+                document.getElementById('serverVersion').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                document.getElementById('serverTPS').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                document.getElementById('serverPlayers').innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> 加载中...</span>';
+                
+                // 调用API获取最新数据
+                queryServerDetail().then(data => {
+                    serverDetailData = data;
+                    updateServerModal(data);
+                }).catch(error => {
+                    console.error('获取服务器详情失败:', error);
+                    // 如果获取失败，显示离线状态
+                    showOfflineStatus();
+                });
+            }
+        }
+        
+        // 查询服务器详情（使用api.mcsrvstat.us）
+        async function queryServerDetail() {
+            const serverIP = 'yanyu.18mc.cc';
+            const apiUrl = `https://api.mcsrvstat.us/2/${serverIP}`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.warn('API调用失败:', error.message);
+                throw error;
+            }
+        }
+        
+        // 更新弹窗显示
+        function updateServerModal(data) {
+            // 判断在线状态
+            const isOnline = data.online !== false;
+            
+            // 更新状态
+            const onlineEl = document.getElementById('serverOnline');
+            if (onlineEl) {
+                onlineEl.innerHTML = `<span class="${isOnline ? 'online' : 'offline'}">
+                    ${isOnline ? '<i class="fas fa-check-circle"></i> 在线' : '<i class="fas fa-times-circle"></i> 离线'}
+                </span>`;
+            }
+            
+            // 更新版本
+            const versionEl = document.getElementById('serverVersion');
+            if (versionEl) {
+                versionEl.textContent = data.version || '1.20.1';
+            }
+            
+            // 更新TPS
+            const tpsEl = document.getElementById('serverTPS');
+            if (tpsEl) {
+                tpsEl.textContent = isOnline ? '20.0' : '0.0';
+            }
+            
+            // 更新在线人数
+            const playersEl = document.getElementById('serverPlayers');
+            if (playersEl) {
+                const online = data.players?.online ?? 0;
+                const max = data.players?.max ?? 20;
+                playersEl.innerHTML = `<span class="${isOnline ? 'online' : 'offline'}">${online} / ${max}</span>`;
+                
+                // 更新地图上的玩家数量显示
+                const playersMapEl = document.getElementById('diamondPlayers');
+                if (playersMapEl) {
+                    playersMapEl.textContent = `${online}/${max} 玩家在线`;
+                }
+            }
+            
+            // 更新地图节点状态
+            updateMapNodeStatus(isOnline);
+        }
+        
+        // 显示离线状态
+        function showOfflineStatus() {
+            const onlineEl = document.getElementById('serverOnline');
+            const playersEl = document.getElementById('serverPlayers');
+            
+            if (onlineEl) {
+                onlineEl.innerHTML = '<span class="offline"><i class="fas fa-times-circle"></i> 离线</span>';
+            }
+            
+            if (playersEl) {
+                playersEl.innerHTML = '<span class="offline">0 / 20</span>';
+            }
+            
+            // 更新地图显示
+            const playersMapEl = document.getElementById('diamondPlayers');
+            if (playersMapEl) {
+                playersMapEl.textContent = '服务器离线';
+            }
+            
+            updateMapNodeStatus(false);
+        }
+        
+        // 更新地图节点状态
+        function updateMapNodeStatus(isOnline) {
+            const nodeStatus = document.querySelector('.map-node.diamond .node-status');
+            const nodeStatusSpan = document.querySelector('.map-node.diamond .node-status span');
+            const nodeIcon = document.querySelector('.map-node.diamond .node-icon i');
+            
+            if (nodeStatus) {
+                nodeStatus.className = `node-status ${isOnline ? 'online' : 'offline'}`;
+                if (nodeStatusSpan) {
+                    nodeStatusSpan.textContent = isOnline ? '在线' : '离线';
+                }
+            }
+            
+            if (nodeIcon) {
+                nodeIcon.className = isOnline ? 'fas fa-check-circle' : 'fas fa-times-circle';
+            }
+        }
+        
+        // 关闭服务器详情弹窗
+        function closeServerModal() {
+            document.getElementById('serverModal').classList.remove('active');
+        }
+        
+        // 点击遮罩层关闭弹窗
+        document.getElementById('serverModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeServerModal();
+            }
+        });
+        
+        // 复制服务器IP
+        function copyServerIP() {
+            const address = document.getElementById('serverIP').textContent.trim();
+            navigator.clipboard.writeText(address).then(() => {
+                showToast('服务器地址已复制到剪贴板', 'success');
+            }).catch(() => {
+                showToast('复制失败，请手动复制', 'warning');
+            });
+        }
+        
+        // 复制加入地址
+        function copyJoinAddress() {
+            const address = 'yanyu.18mc.cc';
+            navigator.clipboard.writeText(address).then(() => {
+                showToast('服务器地址已复制到剪贴板', 'success');
+            }).catch(() => {
+                showToast('复制失败，请手动复制', 'warning');
+            });
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化导航栏UI
+            if (typeof updateNavUI === 'function') {
+                updateNavUI();
+            }
+            
+            // 设置初始服务器状态为加载中
+            const playersEl = document.getElementById('diamondPlayers');
+            if (playersEl) {
+                playersEl.textContent = '正在获取...';
+            }
+            
+            // 定期更新服务器状态（每30秒）
+            setInterval(() => {
+                if (document.getElementById('serverModal').classList.contains('active')) {
+                    queryServerDetail().then(data => {
+                        serverDetailData = data;
+                        updateServerModal(data);
+                    }).catch(() => {
+                        console.warn('更新服务器状态失败');
+                    });
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

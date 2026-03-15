@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>烟融小镇 - 官方网站</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 背景 -->
+    <div class="main-bg">
+        <div class="bg-image"></div>
+        <div class="bg-particles" id="bgParticles"></div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <i class="fas fa-mountain"></i>
+                <span>烟融小镇</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active">首页</a></li>
+                <li><a href="mc.html">MC服务器</a></li>
+                <li><a href="#" onclick="showToast('烟融作品开发中')">烟融作品</a></li>
+                <li><a href="#" onclick="showToast('小世界开发中')">小世界</a></li>
+            </ul>
+            
+            <div class="nav-user">
+                <!-- 由main.js动态填充 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 欢迎区域 -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">欢迎回来，<span id="welcomeName">冒险者</span></h1>
+                <p class="hero-subtitle">探索现实的精彩，发现世界的美好</p>
+            </div>
+        </section>
+
+        <!-- AI助手主界面展示 -->
+        <section class="ai-hero-section">
+            <div class="ai-hero-card">
+                <div class="ai-hero-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ai-hero-content">
+                    <h2>
+                        <i class="fas fa-robot"></i> 烟融AI助手
+                        <span class="ai-hero-tag">
+                            <i class="fas fa-bolt"></i> 由英伟达提供支持
+                        </span>
+                    </h2>
+                    <p>智能助手随时为您服务，解答问题、提供建议、聊聊天...</p>
+                </div>
+                <button class="ai-hero-btn" onclick="AIAssistant.openAssistant()">
+                    <i class="fas fa-comments"></i> 开始对话
+                </button>
+            </div>
+        </section>
+
+        <!-- 功能卡片区 -->
+        <section class="features-section">
+            <div class="section-header">
+                <h2><i class="fas fa-compass"></i> 探索功能</h2>
+            </div>
+            
+            <div class="features-grid">
+                <a href="mc.html" class="feature-card mc-card">
+                    <div class="card-icon">
+                        <i class="fas fa-cubes"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>MC服务器</h3>
+                        <p>进入钻石大陆，开启你的冒险之旅</p>
+                        <span class="card-tag">游戏专区</span>
+                    </div>
+                    <div class="card-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+
+                <div class="feature-card" onclick="showToast('烟融作品开发中')">
+                    <div class="card-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>烟融作品</h3>
+                        <p>精彩内容即将上线...</p>
+                        <span class="card-tag">创作展示</span>
+                    </div>
+                    <div class="card-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="feature-card" onclick="showToast('小世界开发中')">
+                    <div class="card-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>小世界</h3>
+                        <p>微型世界的奇妙探索...</p>
+                        <span class="card-tag">探索专区</span>
+                    </div>
+                    <div class="card-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="feature-card" onclick="scrollToQQ()">
+                    <div class="card-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>社区交流</h3>
+                        <p>加入QQ群，与我们一起互动</p>
+                        <span class="card-tag">社群入口</span>
+                    </div>
+                    <div class="card-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 最佳成员板块 -->
+        <section class="top-members-section">
+            <div class="section-header">
+                <h2><i class="fas fa-trophy"></i> 最佳成员</h2>
+                <p>看看谁是社区最活跃的冒险家！</p>
+            </div>
+            
+            <div class="members-grid" id="topMembersGrid">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">正在加载成员数据...</p>
+                </div>
+            </div>
+            
+            <div class="members-footer">
+                <a href="#" class="view-all-btn" onclick="showAllMembers(); return false;">
+                    <i class="fas fa-users"></i>
+                    查看全部成员
+                </a>
+            </div>
+        </section>
+        
+        <!-- QQ群入口 -->
+        <section class="qq-section" id="qqSection">
+            <div class="qq-sidebar">
+                <h3><i class="fab fa-qq"></i> 官方QQ群</h3>
+                <div class="qq-list">
+                    <a href="https://qm.qq.com/cgi-bin/qm/qr?k=5CLwhFz4sMWj7h2xCqj4a0sO0hZ8fT_3" target="_blank" class="qq-item">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group1/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">恰融X言语总群</span>
+                            <span class="qq-desc">群号: 808741508 · 总群</span>
+                        </div>
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <a href="https://wpa.qq.com/msgrd?v=3&uin=1015192662&site=qq&menu=yes" target="_blank" class="qq-item">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group2/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">恰融工作室MC服务器群</span>
+                            <span class="qq-desc">群号: 1015192662 · 本群</span>
+                        </div>
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <a href="https://qm.qq.com/cgi-bin/qm/qr?k=6T4k6m0w2zq5h0ZJ3tL6n2f1g9s8R5q2" target="_blank" class="qq-item">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group3/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">烟雨MC服务器群</span>
+                            <span class="qq-desc">群号: 472708471</span>
+                        </div>
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <a href="#" class="qq-item" onclick="showToast('请加总群获取管理员群信息')">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group4/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">管理员群</span>
+                            <span class="qq-desc">群号: 1080034000 · 仅管理员/策划/技术</span>
+                        </div>
+                        <i class="fas fa-lock"></i>
+                    </a>
+                    <a href="https://qm.qq.com/cgi-bin/qm/qr?k=G3x5s7q9t2w1e4r6y8u0i3o5a7s9d1f" target="_blank" class="qq-item">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group5/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">测试群</span>
+                            <span class="qq-desc">群号: 731169570 · MC服务器测试</span>
+                        </div>
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <a href="#" class="qq-item" onclick="showToast('请加总群获取策划群信息')">
+                        <div class="qq-avatar">
+                            <img src="https://picsum.photos/seed/group6/100/100" alt="群头像">
+                        </div>
+                        <div class="qq-info">
+                            <span class="qq-name">策划群</span>
+                            <span class="qq-desc">群号: 1029150169 · 仅管理员/策划/技术</span>
+                        </div>
+                        <i class="fas fa-lock"></i>
+                    </a>
+                </div>
+                <div class="qq-notice">
+                    <p><i class="fas fa-exclamation-triangle"></i> 禁止黄、赌、毒。禁止恶意刷屏。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- AI助手浮窗按钮 -->
+    <button class="ai-float-btn" id="aiFloatBtn" onclick="AIAssistant.openAssistant()">
+        <i class="fas fa-robot"></i>
+    </button>
+    
+    <!-- AI助手面板 -->
+    <div class="ai-assistant" id="aiAssistant">
+        <div class="ai-header" onclick="AIAssistant.togglePanel()">
+            <div class="ai-info">
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="ai-name">AI助手</div>
+                    <div class="ai-status">由  供支持</div>
+                </div>
+            </div>
+            <button class="ai-close-btn" onclick="event.stopPropagation(); AIAssistant.closePanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="ai-body">
+            <div class="ai-messages" id="aiMessages">
+                <div class="ai-message">
+                    <div class="ai-avatar" style="width:28px;height:28px;font-size:0.85rem;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="msg-bubble">
+                        你好！我是烟融AI助手，很高兴为你服务！<br><br>
+                        我可以帮助你解答各种问题，或者聊聊天。<br><br>
+                        请输入你的问题或想聊的话题吧！
+                    </div>
+                </div>
+            </div>
+            <div class="ai-input-area">
+                <div class="ai-input-wrapper">
+                    <input type="text" class="ai-input" id="aiInput" placeholder="输入消息..." onkeypress="AIAssistant.handleKeypress(event)">
+                    <button class="ai-send-btn" onclick="AIAssistant.sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-mountain"></i> 烟融小镇</h4>
+                <p>致力于打造优质的在线社区平台</p>
+            </div>
+            <div class="footer-section">
+                <h4>快速链接</h4>
+                <ul>
+                    <li><a href="index.html">首页</a></li>
+                    <li><a href="mc.html">MC服务器</a></li>
+                    <li><a href="#">关于我们</a></li>
+                    <li><a href="#">联系方式</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>关注我们</h4>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-qq"></i></a>
+                    <a href="#"><i class="fab fa-weixin"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 烟融小镇. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="filedb.js"></script>
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await FileDB.init();
+            initParticles();
+            if (AppState.currentUser) {
+                document.getElementById('welcomeName').textContent = AppState.currentUser.username;
+            }
+        });
+
+        function scrollToQQ() {
+            const qqSection = document.getElementById('qqSection');
+            if (qqSection) {
+                qqSection.scrollIntoView({behavior: 'smooth'});
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 烟融小镇</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+    <!-- 背景轮播 -->
+    <div class="auth-bg">
+        <div class="bg-slide" style="background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80');"></div>
+        <div class="bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80');"></div>
+        <div class="bg-slide" style="background-image: url('https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80');"></div>
+    </div>
+
+    <!-- 注册框 -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-logo">
+                <div class="logo-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h1>创建账号</h1>
+                <p class="logo-subtitle">加入烟融小镇大家庭</p>
+            </div>
+            
+            <form class="auth-form" onsubmit="event.preventDefault(); handleRegister();">
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="用户名 (3-20位字母/数字/下划线)" required pattern="[a-zA-Z0-9_]{3,20}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" placeholder="邮箱 (可选)">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="密码 (至少6位)" required minlength="6">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirmPassword" placeholder="确认密码" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="auth-btn">
+                    <i class="fas fa-user-plus"></i>
+                    立即注册
+                </button>
+            </form>
+            
+            <p class="auth-link">
+                已有账号？<a href="login.html">立即登录</a>
+            </p>
+            
+            <!-- 数据库状态 -->
+            <div id="dbStatus" style="text-align:center;margin-top:1rem;padding:0.5rem;font-size:0.85rem;">
+                <i class="fas fa-spinner fa-spin" style="color:#8b949e;"></i>
+                <span style="color:#8b949e;">检查数据库状态...</span>
+            </div>
+            
+            <div class="social-auth">
+                <div class="divider">
+                    <span>其他注册方式</span>
+                </div>
+                <div class="social-buttons">
+                    <button class="social-btn qq" onclick="socialLogin('qq')" title="QQ注册">
+                        <i class="fab fa-qq"></i>
+                    </button>
+                    <button class="social-btn wechat" onclick="socialLogin('wechat')" title="微信注册">
+                        <i class="fab fa-weixin"></i>
+                    </button>
+                    <button class="social-btn github" onclick="socialLogin('github')" title="GitHub注册">
+                        <i class="fab fa-github"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="filedb.js"></script>
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 初始化 FileDB
+            await FileDB.init();
+            
+            const isAuthed = await checkAuth();
+            if (isAuthed) {
+                window.location.href = 'index.html';
+                return;
+            }
+            initBackgroundSlideshow();
+            
+            // 显示数据库状态
+            updateDbStatus();
+        });
+        
+        // 更新数据库状态显示
+        async function updateDbStatus() {
+            const status = await FileDB.getStatus();
+            const statusEl = document.getElementById('dbStatus');
+            if (!statusEl) return;
+            
+            if (status.authorized) {
+                statusEl.innerHTML = `
+                    <i class="fas fa-database" style="color:#3fb950;"></i>
+                    <span style="color:#3fb950;">数据库已连接</span>
+                `;
+            } else {
+                statusEl.innerHTML = `
+                    <i class="fas fa-database" style="color:#d29922;"></i>
+                    <span style="color:#d29922;">使用临时存储</span>
+                    <button onclick="initDatabase()" style="margin-left:0.5rem;font-size:0.75rem;padding:0.2rem 0.5rem;background:#238636;color:#fff;border:none;border-radius:4px;cursor:pointer;">
+                        连接本地数据库
+                    </button>
+                `;
+            }
+        }
+        
+        // 初始化数据库
+        async function initDatabase() {
+            try {
+                showToast('请选择数据库文件位置...', 'info');
+                const success = await FileDB.requestFileAccess();
+                if (success) {
+                    showToast('数据库连接成功！', 'success');
+                    updateDbStatus();
+                }
+            } catch (error) {
+                showToast('数据库连接失败: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

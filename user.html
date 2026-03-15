@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账户设置 - 烟融小镇</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="user-page">
+    <!-- 导航栏 -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <i class="fas fa-mountain"></i>
+                <span>烟融小镇</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="mc.html">MC服务器</a></li>
+                <li><a href="#">烟融作品</a></li>
+                <li><a href="#">小世界</a></li>
+            </ul>
+            
+            <div class="nav-user">
+                <!-- 由main.js动态填充 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content user-container">
+        <!-- 侧边栏 -->
+        <aside class="user-sidebar">
+            <div class="user-menu-item active" data-target="profile">
+                <i class="fas fa-user"></i>
+                <span>个人信息</span>
+            </div>
+            <div class="user-menu-item" data-target="security">
+                <i class="fas fa-shield-alt"></i>
+                <span>账户安全</span>
+            </div>
+            <div class="user-menu-item" data-target="preferences">
+                <i class="fas fa-sliders-h"></i>
+                <span>偏好设置</span>
+            </div>
+            <div class="user-menu-item" data-target="history">
+                <i class="fas fa-history"></i>
+                <span>登录历史</span>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <div class="user-main">
+            <!-- 个人信息 -->
+            <div class="user-section active" id="profile">
+                <div class="user-header">
+                    <h1>个人信息</h1>
+                    <p>管理您的个人账户信息</p>
+                </div>
+                
+                <div class="account-profile">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="profileUsername">用户名</h2>
+                        <p id="profileEmail">email@example.com</p>
+                        <span class="profile-badge">
+                            <i class="fas fa-check-circle"></i> 已验证
+                        </span>
+                    </div>
+                </div>
+                
+                <h3 class="form-section-title">基本资料</h3>
+                <form onsubmit="event.preventDefault(); saveProfile();">
+                    <div class="form-row">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="editUsername" disabled>
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">邮箱地址</label>
+                        <input type="email" class="form-input" id="editEmail" placeholder="请输入邮箱">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">新密码</label>
+                        <input type="password" class="form-input" id="newPassword" placeholder="留空则不修改密码">
+                        <p class="form-hint">密码至少需要6个字符</p>
+                    </div>
+                    <button type="submit" class="save-btn">
+                        <i class="fas fa-save"></i> 保存修改
+                    </button>
+                </form>
+            </div>
+
+            <!-- 账户安全 -->
+            <div class="user-section" id="security">
+                <div class="user-header">
+                    <h1>账户安全</h1>
+                    <p>保护您的账户安全</p>
+                </div>
+                
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>登录密码</h4>
+                        <p>上次修改：从未</p>
+                    </div>
+                    <span class="security-status">
+                        <i class="fas fa-check"></i> 已设置
+                    </span>
+                </div>
+                
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>邮箱绑定</h4>
+                        <p id="securityEmail">未绑定邮箱</p>
+                    </div>
+                    <span class="security-status" id="emailStatus">
+                        <i class="fas fa-exclamation"></i> 未绑定
+                    </span>
+                </div>
+                
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>两步验证</h4>
+                        <p>暂未开放</p>
+                    </div>
+                    <span class="security-status warning">
+                        <i class="fas fa-times"></i> 未开启
+                    </span>
+                </div>
+            </div>
+
+            <!-- 偏好设置 -->
+            <div class="user-section" id="preferences">
+                <div class="user-header">
+                    <h1>偏好设置</h1>
+                    <p>自定义您的使用体验</p>
+                </div>
+                
+                <form onsubmit="event.preventDefault(); savePreferences();">
+                    <div class="toggle-item">
+                        <div class="toggle-info">
+                            <h4>邮件通知</h4>
+                            <p>接收站点更新和活动通知</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleEmail" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-item">
+                        <div class="toggle-info">
+                            <h4>AI助手</h4>
+                            <p>在首页和MC页面显示AI助手入口</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleAI" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div style="margin-top:1.5rem;">
+                        <button type="submit" class="save-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 登录历史 -->
+            <div class="user-section" id="history">
+                <div class="user-header">
+                    <h1>登录历史</h1>
+                    <p>查看您的账户登录记录</p>
+                </div>
+                
+                <div id="loginHistory">
+                    <div class="no-players">
+                        <i class="fas fa-history"></i> 正在加载...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="main-footer">
+        <div class="footer-bottom">
+            <p>&copy; 2024 烟融小镇. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="filedb.js"></script>
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initUserPage();
+        });
+    </script>
+</body>
+</html>
