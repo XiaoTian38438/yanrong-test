@@ -1,0 +1,15 @@
+name = "yanrong-api"
+main = "api/worker.js"
+compatibility_date = "2024-01-01"
+
+# D1 数据库绑定
+# 部署前请将 database_id 替换为你实际的数据库ID
+[[d1_databases]]
+binding = "DB"
+database_name = "yanrong-users"
+database_id = "8e992165-6db5-4b45-92f0-94f12265a90e"  # 运行 wrangler d1 create yanrong-users 后替换这里
+
+# 开发环境配置（可选）
+[dev]
+port = 8787
+local_protocol = "http"

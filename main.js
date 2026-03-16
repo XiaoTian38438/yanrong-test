@@ -12,49 +12,111 @@ const AppState = {
 };
 
 // ============================================
-// 用户系统（使用 FileDB 本地文件存储）
+// 用户系统（优先使用云端 API，失败则回退到本地）
 // ============================================
 const UserSystem = {
-    // 代理到 FileDB 的方法（保持向后兼容）
-    
-    // 获取用户数据库
-    async getDatabase() {
-        return await FileDB.getDatabase();
-    },
-    
-    // 保存用户数据库
-    async saveDatabase(db) {
-        await FileDB.saveDatabase(db);
-    },
-    
-    // 获取所有用户
-    async getUsers() {
-        return await FileDB.getUsers();
-    },
-    
-    // 保存用户列表
-    async saveUsers(users) {
-        await FileDB.saveUsers(users);
-    },
-    
     // 注册用户
     async register(username, password, email = '') {
+        try {
+            // 优先使用云端 API
+            if (typeof CloudflareAPI !== 'undefined') {
+                const result = await CloudflareAPI.register(username, password, email);
+                if (result.ok && result.data.success) {
+                    return {
+                        success: true,
+                        message: result.data.message,
+                        user: result.data.user
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: result.data.message || '注册失败'
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn('云端注册失败，回退到本地存储:', error);
+        }
+        
+        // 回退到本地存储
         return await FileDB.register(username, password, email);
     },
     
     // 用户登录
     async login(username, password) {
+        try {
+            // 优先使用云端 API
+            if (typeof CloudflareAPI !== 'undefined') {
+                const result = await CloudflareAPI.login(username, password);
+                if (result.ok && result.data.success) {
+                    // 保存云端 token
+                    localStorage.setItem('yanyu_cloud_token', result.data.token);
+                    return {
+                        success: true,
+                        message: result.data.message,
+                        user: result.data.user
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: result.data.message || '登录失败'
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn('云端登录失败，回退到本地存储:', error);
+        }
+        
+        // 回退到本地存储
         return await FileDB.login(username, password);
     },
     
     // 更新用户信息
     async updateUser(username, data) {
+        try {
+            // 优先使用云端 API
+            if (typeof CloudflareAPI !== 'undefined') {
+                const result = await CloudflareAPI.updateUser(data);
+                if (result.ok && result.data.success) {
+                    return { success: true, user: { username, ...data } };
+                }
+            }
+        } catch (error) {
+            console.warn('云端更新失败，回退到本地存储:', error);
+        }
+        
+        // 回退到本地存储
         return await FileDB.updateUser(username, data);
     },
     
     // 获取用户信息
     async getUser(username) {
+        try {
+            // 优先使用云端 API 验证 token
+            if (typeof CloudflareAPI !== 'undefined') {
+                const result = await CloudflareAPI.verify();
+                if (result.ok && result.data.success) {
+                    return result.data.user;
+                }
+            }
+        } catch (error) {
+            console.warn('云端验证失败，回退到本地存储:', error);
+        }
+        
+        // 回退到本地存储
         return await FileDB.getUser(username);
+    },
+    
+    // 退出登录
+    async logout() {
+        try {
+            if (typeof CloudflareAPI !== 'undefined') {
+                await CloudflareAPI.logout();
+            }
+        } catch (error) {
+            console.warn('云端退出失败:', error);
+        }
+        localStorage.removeItem('yanyu_cloud_token');
     },
     
     // 获取设备信息
