@@ -435,10 +435,10 @@ document.addEventListener('click', function(e) {
 // ============================================
 const AIAssistant = {
     // OpenRouter API Key
-    API_KEY: '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',
+    API_KEY: 'sk-or-v1-684c624c14b62342642***********f82ad1149e89636a9651616d17fe4a7f0a', //此api-key已废弃
     
     // 使用的模型
-    MODEL: 'arcee-ai/trinity-large-preview:free',
+    MODEL: 'arcee-ai/trinity-large-preview:free',//此模型已废弃
     
     // API 基础 URL
     API_URL: 'https://openrouter.ai/api/v1/chat/completions',
